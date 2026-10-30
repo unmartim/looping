@@ -9,13 +9,14 @@ const snap = atom({ plugin: 'looping-painel', key: 'snap' } as const, { backlog:
   shape: 'snap-1',
 })
 
-const ROTULO: Record<string, string> = {
-  fazendo: '▶ fazendo',
-  pendente: '○ pendente',
-  feito: '✓ feito',
-  travado: '✕ travado',
-  conflito: '⇄ conflito',
+const ESTILO: Record<string, { icone: string; cor: string; nome: string }> = {
+  fazendo: { icone: '◆', cor: 'claude', nome: 'fazendo' },
+  pendente: { icone: '○', cor: 'text', nome: 'pendente' },
+  feito: { icone: '✓', cor: 'success', nome: 'feito' },
+  travado: { icone: '✕', cor: 'error', nome: 'travado' },
+  conflito: { icone: '⇄', cor: 'warning', nome: 'conflito' },
 }
+const TIPO: Record<string, string> = { bug: 'bug', melhoria: 'melhoria', tarefa: 'tarefa' }
 const ORDEM = ['fazendo', 'pendente', 'travado', 'conflito', 'feito']
 
 export const register: Register = on => {
@@ -64,10 +65,12 @@ export const register: Register = on => {
 
     if (!b) {
       return (
-        <Box flexDirection="column">
-          <Text bold>Looping</Text>
-          <Text dimColor>Nenhum loop nesta pasta.</Text>
-          <Text dimColor>Comece com /looping "objetivo".</Text>
+        <Box flexDirection="column" padding={1} gap={1}>
+          <Text bold color="claude">⟳ Looping</Text>
+          <Box borderStyle="round" borderColor="subtle" paddingX={1} flexDirection="column">
+            <Text dimColor>Nenhum loop nesta pasta.</Text>
+            <Text dimColor>Comece com <Text color="suggestion">/looping "seu objetivo"</Text></Text>
+          </Box>
         </Box>
       )
     }
@@ -75,45 +78,100 @@ export const register: Register = on => {
     const conta = (s: string) => b.itens.filter(i => i.status === s).length
     const feitos = conta('feito')
     const total = b.itens.length
-    const largura = 20
+    const pct = total ? Math.round((feitos / total) * 100) : 0
+    const largura = 24
     const cheio = total ? Math.round((feitos / total) * largura) : 0
     const doAgente = b.itens.filter(i => i.origem === 'agente').length
+    const noLimite = doAgente >= b.limite
     const v = b.ultima_varredura
-    const espaco = Math.max(3, (e.viewport?.rows ?? 30) - 14)
+    const espaco = Math.max(3, (e.viewport?.rows ?? 30) - 18)
     const lista: Item[] = [...b.itens].sort(
       (x, y) => ORDEM.indexOf(x.status) - ORDEM.indexOf(y.status) || y.id - x.id,
     )
+    const atual = b.itens.find(i => i.status === 'fazendo')
+
+    const chip = (s: string) => {
+      const st = ESTILO[s]!
+      const n = conta(s)
+      return (
+        <Text color={n ? st.cor : 'subtle'}>
+          {st.icone} {n} {st.nome}
+        </Text>
+      )
+    }
 
     return (
-      <Box flexDirection="column">
-        <Text bold>{b.ativo ? '● Loop ativo' : `■ Encerrado${b.motivo_fim ? `: ${b.motivo_fim}` : ''}`}</Text>
-        <Text>{b.objetivo}</Text>
-        <Text> </Text>
-        <Text>
-          {'█'.repeat(cheio)}
-          <Text dimColor>{'░'.repeat(largura - cheio)}</Text> {feitos}/{total}
-        </Text>
-        <Text dimColor>
-          pendente {conta('pendente')} · fazendo {conta('fazendo')} · travado {conta('travado')} · conflito{' '}
-          {conta('conflito')}
-        </Text>
-        <Text dimColor={doAgente < b.limite}>
-          criadas pelo agente: {doAgente}/{b.limite}
-          {doAgente >= b.limite ? ' (limite atingido)' : ''}
-        </Text>
-        <Text dimColor>
-          varredura: {v ? `${v.quando.slice(11, 16)} · ${v.novos} novo(s)` : 'ainda não feita'}
-        </Text>
-        <Text> </Text>
-        {lista.slice(0, espaco).map(i => (
-          <Text dimColor={i.status === 'feito'} bold={i.status === 'fazendo'}>
-            {ROTULO[i.status] ?? i.status} #{i.id} {i.titulo}
-            {i.origem === 'usuario' ? ' (você)' : ''}
-            {i.conflito_com ? ` ⇄ #${i.conflito_com}` : ''}
-          </Text>
-        ))}
-        {lista.length > espaco && <Text dimColor>+{lista.length - espaco} item(ns)</Text>}
-        {(b.sugestoes?.length ?? 0) > 0 && <Text dimColor>{b.sugestoes!.length} sugestão(ões) além do limite</Text>}
+      <Box flexDirection="column" paddingX={1} gap={1}>
+        <Box justifyContent="space-between">
+          <Text bold color="claude">⟳ Looping</Text>
+          <Text color={b.ativo ? 'success' : 'subtle'}>{b.ativo ? '● ativo' : '■ encerrado'}</Text>
+        </Box>
+
+        <Box borderStyle="round" borderColor={b.ativo ? 'claude' : 'subtle'} paddingX={1} flexDirection="column">
+          <Text bold wrap="wrap">{b.objetivo}</Text>
+          <Box marginTop={1}>
+            <Text color="success">{'━'.repeat(cheio)}</Text>
+            <Text color="subtle">{'━'.repeat(largura - cheio)}</Text>
+            <Text bold> {pct}%</Text>
+            <Text dimColor>  {feitos}/{total}</Text>
+          </Box>
+          {!b.ativo && b.motivo_fim && <Text dimColor wrap="wrap">{b.motivo_fim}</Text>}
+        </Box>
+
+        <Box flexWrap="wrap" columnGap={2}>
+          {chip('pendente')}
+          {chip('fazendo')}
+          {chip('feito')}
+          {chip('travado')}
+          {chip('conflito')}
+        </Box>
+
+        <Box flexDirection="column">
+          <Box justifyContent="space-between">
+            <Text dimColor>descobertas do agente</Text>
+            <Text color={noLimite ? 'warning' : 'text'}>
+              {doAgente}/{b.limite}{noLimite ? ' · limite' : ''}
+            </Text>
+          </Box>
+          <Box justifyContent="space-between">
+            <Text dimColor>última varredura</Text>
+            <Text color={v && v.novos === 0 ? 'success' : 'text'}>
+              {v ? `${v.quando.slice(11, 16)} · ${v.novos === 0 ? 'limpa' : `${v.novos} novo(s)`}` : 'pendente'}
+            </Text>
+          </Box>
+        </Box>
+
+        {atual && (
+          <Box borderStyle="round" borderColor="claude" paddingX={1} flexDirection="column">
+            <Text color="claude" bold>◆ Agora</Text>
+            <Text wrap="wrap">#{atual.id} {atual.titulo}</Text>
+          </Box>
+        )}
+
+        <Box flexDirection="column">
+          {lista.filter(i => i !== atual).slice(0, espaco).map(i => {
+            const st = ESTILO[i.status] ?? { icone: '·', cor: 'text', nome: i.status }
+            const feito = i.status === 'feito'
+            return (
+              <Box key={String(i.id)} gap={1}>
+                <Text color={st.cor}>{st.icone}</Text>
+                <Text dimColor={feito} strikethrough={feito} wrap="truncate-end">
+                  {i.titulo}
+                </Text>
+                <Text dimColor>
+                  {TIPO[i.tipo] ?? i.tipo}{i.origem === 'usuario' ? ' · você' : ''}{i.conflito_com ? ` · ⇄ #${i.conflito_com}` : ''}
+                </Text>
+              </Box>
+            )
+          })}
+          {lista.length - (atual ? 1 : 0) > espaco && (
+            <Text dimColor>+ {lista.length - (atual ? 1 : 0) - espaco} item(ns)</Text>
+          )}
+        </Box>
+
+        {(b.sugestoes?.length ?? 0) > 0 && (
+          <Text color="warning">✦ {b.sugestoes!.length} sugestão(ões) além do limite</Text>
+        )}
       </Box>
     )
   })
