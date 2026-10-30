@@ -3,14 +3,22 @@
 // encerrar enquanto houver item aberto ou faltar a varredura final limpa. Sem loop ativo, não faz nada.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 let input = {};
 try { input = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch {}
-const FILE = join(input.cwd || process.cwd(), '.loop', 'backlog.json');
+// Acha o backlog desta sessão: pelo registro global (sessão → arquivo) ou pela pasta da sessão.
+let FILE = join(input.cwd || process.cwd(), '.loop', 'backlog.json');
+const REG = join(homedir(), '.looping', 'sessoes.json');
+if (input.session_id && existsSync(REG)) {
+  try { const m = JSON.parse(readFileSync(REG, 'utf8')); if (m[input.session_id]) FILE = m[input.session_id]; } catch {}
+}
 if (!existsSync(FILE)) process.exit(0);
 const b = JSON.parse(readFileSync(FILE, 'utf8'));
 if (!b.ativo) process.exit(0);
+// Loop de outra sessão (outro agente) nesta mesma pasta: não é da conta desta.
+if (b.sessao && input.session_id && b.sessao !== input.session_id) process.exit(0);
 
 const SCRIPT = `node "${join(dirname(fileURLToPath(import.meta.url)), 'loop.mjs')}"`;
 const save = () => writeFileSync(FILE, JSON.stringify(b, null, 2));

@@ -11,6 +11,7 @@
 //   loop.mjs status | next | report | stop "<motivo>"
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const DIR = join(process.cwd(), '.loop');
@@ -39,6 +40,15 @@ const proximo = (b) => abertos(b).sort((x, y) =>
   (y.status === 'fazendo') - (x.status === 'fazendo') ||
   ORDEM[x.tipo] - ORDEM[y.tipo] || IMP[x.impacto] - IMP[y.impacto] || x.id - y.id)[0];
 
+// Registro global sessão → backlog, para o hook achar o loop mesmo quando a sessão roda em outra pasta.
+function registrar(sessao, arquivo) {
+  if (!sessao) return;
+  const dir = join(homedir(), '.looping'); mkdirSync(dir, { recursive: true });
+  const reg = join(dir, 'sessoes.json');
+  const m = existsSync(reg) ? JSON.parse(readFileSync(reg, 'utf8')) : {};
+  m[sessao] = arquivo; writeFileSync(reg, JSON.stringify(m, null, 2));
+}
+
 function resumo(b) {
   const c = (s) => b.itens.filter((x) => x.status === s).length;
   const lim = criadosAgente(b) >= b.limite ? ' (LIMITE ATINGIDO: não registre novas descobertas)' : '';
@@ -63,7 +73,8 @@ switch (cmd) {
       itens: [], varreduras: [], ultima_varredura: null, sugestoes: [], rev: 0,
       hook: { bloqueios_sem_progresso: 0, ultima_rev: 0 },
     };
-    save(b); console.log(resumo(b)); break;
+    b.sessao = process.env.CLAUDE_CODE_SESSION_ID || null;
+    save(b); registrar(b.sessao, FILE); console.log(resumo(b)); break;
   }
   case 'add': {
     const b = load(); const origem = opt('--origem', 'agente');

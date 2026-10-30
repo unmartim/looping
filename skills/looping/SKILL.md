@@ -102,3 +102,10 @@ Quando o hook liberar (ou o usuário mandar parar, com `<s> stop "<motivo>"`), r
 - **sugestões** além do limite e o que ficou fora do escopo.
 
 Nunca diga que verificou algo que não rodou.
+
+## No OpenBot
+
+Se a ferramenta `openbot.html_render` existir, mostre o progresso como cartão no chat: a cada 5 itens
+concluídos e no encerramento. Gere o HTML com `node <pasta desta skill>/scripts/card.mjs` (lê
+`.loop/backlog.json` e imprime a página) e passe a saída para `openbot.html_render` com o título
+"Looping". Não descreva o cartão no texto; diga só o que ele não mostra.
