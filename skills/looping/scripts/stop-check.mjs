@@ -22,7 +22,12 @@ if (b.sessao && input.session_id && b.sessao !== input.session_id) process.exit(
 
 const SCRIPT = `node "${join(dirname(fileURLToPath(import.meta.url)), 'loop.mjs')}"`;
 const save = () => writeFileSync(FILE, JSON.stringify(b, null, 2));
-const allow = (motivo) => { b.ativo = false; b.motivo_fim = motivo; save(); process.exit(0); };
+// Ao encerrar, devolve o turno uma última vez para o agente mostrar o relatório e o cartão final.
+const allow = (motivo) => {
+  b.ativo = false; b.motivo_fim = motivo; save();
+  process.stdout.write(JSON.stringify({ decision: 'block', reason: `[looping] Loop encerrado (${motivo}). Rode ${SCRIPT} report e entregue o relatório (o cartão ao vivo já mostra o fim).` }));
+  process.exit(0);
+};
 const block = (reason) => {
   b.hook ||= { bloqueios_sem_progresso: 0, ultima_rev: 0 };
   b.hook.bloqueios_sem_progresso = b.rev === b.hook.ultima_rev ? b.hook.bloqueios_sem_progresso + 1 : 1;

@@ -10,9 +10,10 @@
 //   loop.mjs sweep "<o que foi varrido>" [--novos N]  registra uma varredura (N = itens novos encontrados)
 //   loop.mjs status | next | report | stop "<motivo>"
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 const DIR = join(process.cwd(), '.loop');
 const FILE = join(DIR, 'backlog.json');
@@ -49,6 +50,18 @@ function registrar(sessao, arquivo) {
   m[sessao] = arquivo; writeFileSync(reg, JSON.stringify(m, null, 2));
 }
 
+// Lembrete para o agente mostrar o cartão no OpenBot (início, a cada 3 concluídos e no fim).
+const CARTAO = `
+>>> MOSTRE O CARTÃO AO VIVO AGORA (uma vez; ele se atualiza sozinho): rode "node \"${join(dirname(fileURLToPath(import.meta.url)), 'card.mjs')}\"" e passe a saída para openbot.html_render (via openbot.tool_call, título "Looping"). Fora do OpenBot, ignore.`;
+
+// Sobe o servidor do cartão ao vivo (se já houver um, o novo sai sozinho).
+function subirLive() {
+  try {
+    const p = spawn(process.execPath, [join(dirname(fileURLToPath(import.meta.url)), 'live.mjs')], { detached: true, stdio: 'ignore', windowsHide: true });
+    p.unref();
+  } catch {}
+}
+
 function resumo(b) {
   const c = (s) => b.itens.filter((x) => x.status === s).length;
   const lim = criadosAgente(b) >= b.limite ? ' (LIMITE ATINGIDO: não registre novas descobertas)' : '';
@@ -74,7 +87,7 @@ switch (cmd) {
       hook: { bloqueios_sem_progresso: 0, ultima_rev: 0 },
     };
     b.sessao = process.env.CLAUDE_CODE_SESSION_ID || null;
-    save(b); registrar(b.sessao, FILE); console.log(resumo(b)); break;
+    save(b); registrar(b.sessao, FILE); subirLive(); console.log(resumo(b) + CARTAO); break;
   }
   case 'add': {
     const b = load(); const origem = opt('--origem', 'agente');

@@ -88,7 +88,7 @@ projeto.
 | Dois itens se quebram mutuamente | viram **conflito**, os dois vão para o usuário |
 | Limite de tarefas criadas por você | descobertas novas viram sugestões; o loop termina quando o backlog zerar |
 | 5 tentativas de parar sem nenhum avanço | o hook libera e marca o loop como **estagnado** |
-| A cada 5 itens concluídos | o script imprime um status; mostre ao usuário em 2 linhas e continue |
+| A cada 3 itens concluídos | o script imprime um status; siga trabalhando (o cartão ao vivo já mostra) |
 
 Itens travados e em conflito não impedem o fim do loop.
 
@@ -103,9 +103,16 @@ Quando o hook liberar (ou o usuário mandar parar, com `<s> stop "<motivo>"`), r
 
 Nunca diga que verificou algo que não rodou.
 
-## No OpenBot
+## No OpenBot: cartão ao vivo (obrigatório)
 
-Se a ferramenta `openbot.html_render` existir, mostre o progresso como cartão no chat: a cada 5 itens
-concluídos e no encerramento. Gere o HTML com `node <pasta desta skill>/scripts/card.mjs` (lê
-`.loop/backlog.json` e imprime a página) e passe a saída para `openbot.html_render` com o título
-"Looping". Não descreva o cartão no texto; diga só o que ele não mostra.
+No OpenBot, o usuário acompanha o loop por um cartão no chat que **se atualiza sozinho** a cada 2 s
+(lê um servidor local em 127.0.0.1 que o `init` sobe). Mostre-o **uma vez, logo depois do `init` e de
+registrar as tarefas do usuário, antes de começar a trabalhar**. O `init` imprime `>>> MOSTRE O CARTÃO
+AO VIVO AGORA` com o comando exato.
+
+1. Na pasta do loop: `node <pasta desta skill>/scripts/card.mjs` imprime a página.
+2. Passe a saída inteira para `openbot.html_render` com o título "Looping" (ferramenta do OpenBot:
+   `openbot.tool_describe` com `["openbot.html_render"]` uma vez, depois `openbot.tool_call`).
+3. Não mostre de novo a cada item: o mesmo cartão vai mudando. Mostre outro só se o usuário pedir ou se
+   ele disser que o cartão parou ("sem conexão").
+4. Não descreva o cartão no texto.
