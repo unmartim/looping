@@ -19,29 +19,29 @@ const ESTILO: Record<string, { icone: string; cor: string; nome: string }> = {
 const TIPO: Record<string, string> = { bug: 'bug', melhoria: 'melhoria', tarefa: 'tarefa' }
 const ORDEM = ['fazendo', 'pendente', 'travado', 'conflito', 'feito']
 
-export const register: Register = on => {
-  let texto = ''
+let texto = ''
 
-  const ler = async ($: EngineInterface) => {
-    let atual = ''
-    try {
-      atual = (await $.fs.exists(ARQUIVO)) ? String(await $.fs.read(ARQUIVO)) : ''
-    } catch {
-      atual = ''
-    }
-    if (atual === texto) return
-    texto = atual
-    let backlog: Backlog | null = null
-    try {
-      backlog = atual ? (JSON.parse(atual) as Backlog) : null
-    } catch {
-      backlog = null
-    }
-    await update($, snap, () => ({ backlog, lidoEm: Date.now() }))
-    const abertos = backlog?.itens.filter(i => i.status === 'pendente' || i.status === 'fazendo').length ?? 0
-    await $.ui.status(backlog?.ativo ? `loop: ${abertos} aberto(s)` : undefined)
+async function ler($: EngineInterface) {
+  let atual = ''
+  try {
+    atual = (await $.fs.exists(ARQUIVO)) ? String(await $.fs.read(ARQUIVO)) : ''
+  } catch {
+    atual = ''
   }
+  if (atual === texto) return
+  texto = atual
+  let backlog: Backlog | null = null
+  try {
+    backlog = atual ? (JSON.parse(atual) as Backlog) : null
+  } catch {
+    backlog = null
+  }
+  await update($, snap, () => ({ backlog, lidoEm: Date.now() }))
+  const abertos = backlog?.itens.filter(i => i.status === 'pendente' || i.status === 'fazendo').length ?? 0
+  await $.ui.status(backlog?.ativo ? `loop: ${abertos} aberto(s)` : undefined)
+}
 
+export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'looping-painel', description: 'Abre o painel do backlog do looping' })
     await ler($)

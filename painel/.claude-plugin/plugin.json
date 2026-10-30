@@ -1,1 +1,1 @@
-{ "name": "looping-painel", "version": "0.1.0", "description": "Painel ao lado do chat com o backlog ao vivo do looping (.loop/backlog.json).", "types": "./types/index.d.ts" }
+{ "name": "looping-painel", "version": "0.1.0", "description": "Painel ao lado do chat com o backlog ao vivo do looping (.loop/backlog.json).", "author": { "name": "unmartim" }, "license": "MIT", "types": "./types/index.d.ts" }
