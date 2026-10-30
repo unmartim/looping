@@ -110,7 +110,7 @@ No OpenBot, o usuário acompanha o loop por um cartão no chat que **se atualiza
 registrar as tarefas do usuário, antes de começar a trabalhar**. O `init` imprime `>>> MOSTRE O CARTÃO
 AO VIVO AGORA` com o comando exato.
 
-1. Na pasta do loop: `node <pasta desta skill>/scripts/card.mjs` imprime a página.
+1. Na pasta do loop: `node <pasta desta skill>/scripts/card.mjs` imprime a página. **Use essa saída exatamente como vem.** Não escreva seu próprio HTML nem copie os itens para um cartão seu: um cartão feito à mão é uma foto e nunca se atualiza.
 2. Passe a saída inteira para `openbot.html_render` com o título "Looping" (ferramenta do OpenBot:
    `openbot.tool_describe` com `["openbot.html_render"]` uma vez, depois `openbot.tool_call`).
 3. Não mostre de novo a cada item: o mesmo cartão vai mudando. Mostre outro só se o usuário pedir ou se
