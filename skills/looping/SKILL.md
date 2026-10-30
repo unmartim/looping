@@ -22,9 +22,10 @@ FIM quando: backlog zerado E uma varredura sem novidades depois da última mudan
    confirmação ou "quer que eu continue?". Diante de uma dúvida:
    - se dá para decidir com bom senso, decida, anote a decisão na evidência e siga;
    - se só o usuário pode decidir (dado que você não tem, credencial, escolha de negócio, ação da seção 5),
-     registre `<s> add "[pergunta] <a dúvida>" --origem agente --tipo tarefa`, marque `fail` 3 vezes com o
-     motivo "precisa do usuário" para ele virar **travado**, e **siga com os outros itens**. Todas as
-     perguntas vão juntas no relatório final.
+     rode `<s> ask "<a dúvida>"` (ela fica guardada, travada, fora do limite) e **siga com os outros itens**.
+     Todas as perguntas vão juntas no relatório final.
+   - Também é proibido parar para "resumir o que fiz até agora". O hook lê sua última mensagem: se ela
+     pergunta algo ou pede confirmação, ele bloqueia e manda seguir.
 2. **Só o usuário encerra o loop.** Você nunca roda `stop` por conta própria; o script recusa sem
    `--pedido-do-usuario`, e você só passa essa flag quando o usuário mandou parar nesta conversa.
 3. **O cartão do chat é sempre o do `card.mjs`.** Nunca escreva HTML de cartão, nunca resuma o backlog num
@@ -40,7 +41,8 @@ FIM quando: backlog zerado E uma varredura sem novidades depois da última mudan
 1. Leia o pedido e extraia: **objetivo**, **escopo** (quais telas, pastas, fluxos), **critério de pronto** e o
    **limite** de tarefas que você pode criar sozinho. O padrão é 20; o usuário muda com `--limite N` ou dizendo
    "limite de N".
-2. `<s> init "<objetivo em uma frase, com o escopo>" --limite N`
+2. `<s> init "<objetivo em uma frase, com o escopo>" --limite N`. Se já houver loop ativo ou pausado na pasta,
+   o `init` **continua o mesmo loop** (nada é apagado): só registre as tarefas novas com `add`.
 3. Registre cada tarefa que o usuário passou: `<s> add "<tarefa>" --origem usuario --tipo tarefa`.
    Elas não contam no limite.
 4. Se o pedido for de análise ("analisa até achar bugs"), faça antes uma primeira varredura (seção 4) e
@@ -53,7 +55,9 @@ FIM quando: backlog zerado E uma varredura sem novidades depois da última mudan
 2. Faça a mudança mínima que resolve o item, dentro do escopo.
 3. **Verifique de verdade:** rode o teste, o build, o typecheck, abra a tela, tire o print, chame a API. "Acho
    que funciona" não é verificação.
-4. Passou: `<s> done <id> "<evidência>"`, por exemplo "vitest 541/541; print da tela em 390px sem overflow".
+4. Feche **com verificação executada** sempre que houver comando: `<s> done <id> --verificar "npm test"` (ou
+   build, typecheck, script de checagem). O script roda o comando e só fecha se ele passar; se falhar, conta
+   como tentativa. Sem comando possível (ex.: conferência visual), `<s> done <id> "<evidência concreta>"`.
    Não passou: `<s> fail <id> "<motivo>"`. Na 3ª falha o item vira **travado** e sai da frente.
 5. A correção quebrou algo que já estava feito? `<s> reopen <id-quebrado> --por <id-que-quebrou>`. Se dois
    itens se quebrarem mutuamente duas vezes, viram **conflito** e vão para o usuário.
@@ -63,7 +67,8 @@ primeiro.
 
 ## 3. Registrar descobertas
 
-Achou um bug ou uma melhoria enquanto trabalhava? Registre na hora e continue o item atual:
+**Toda descoberta entra no backlog na hora**, antes de qualquer outra coisa. Achou um bug ou uma melhoria
+enquanto trabalhava? Registre e continue o item atual (mencionar no texto sem registrar não vale):
 
 `<s> add "<título concreto>" --tipo bug|melhoria --impacto alto|medio|baixo`
 
@@ -82,8 +87,10 @@ Quando o backlog zerar, varra de novo **todo o escopo**, não só o que você me
 - fluxos: o caminho principal de ponta a ponta;
 - se o pedido for de design, use o Atelier (`inspect.mjs`) como critério.
 
-Registre o que achar e então: `<s> sweep "<o que foi varrido>" --novos N`.
-Com `N > 0`, o loop continua. O fim só chega com uma varredura `--novos 0` depois da última mudança.
+Registre a varredura **com tudo o que achou**: `<s> sweep "<o que foi varrido>" --achado "<problema 1>" --achado
+"<problema 2>"` (`--tipo melhoria` para melhorias). Cada `--achado` vira item, e o script conta sozinho os
+novos desde a varredura anterior. Com novos, o loop continua. O fim só chega com uma varredura sem
+novidades depois da última mudança.
 
 ## 5. Regras que valem mesmo com "autorizo tudo"
 
@@ -103,7 +110,8 @@ projeto.
 | Item falhou 3 vezes | vira **travado**, você segue para o próximo |
 | Dois itens se quebram mutuamente | viram **conflito**, os dois vão para o usuário |
 | Limite de tarefas criadas por você | descobertas novas viram sugestões; o loop termina quando o backlog zerar |
-| 5 tentativas de parar sem nenhum avanço | o hook libera e marca o loop como **estagnado** |
+| Parar para perguntar ou resumir | o hook bloqueia e manda seguir (não conta como estagnação) |
+| 8 tentativas de parar sem nenhum avanço | o loop fica **pausado** (nada se perde); o usuário retoma com "continua o loop" (`<s> resume`) |
 | A cada 3 itens concluídos | o script imprime um status; siga trabalhando (o cartão ao vivo já mostra) |
 
 Itens travados e em conflito não impedem o fim do loop.
@@ -114,7 +122,7 @@ Quando o hook liberar (ou o usuário mandar parar, com `<s> stop "<motivo>" --pe
 
 - o resultado em 1 linha e o motivo do fim;
 - **feitos**, cada um com a evidência;
-- **precisa de você:** travados, conflitos e itens "[aprovação]";
+- **precisa de você:** perguntas (`ask`), travados, conflitos e itens "[aprovação]";
 - **sugestões** além do limite e o que ficou fora do escopo.
 
 Nunca diga que verificou algo que não rodou.
