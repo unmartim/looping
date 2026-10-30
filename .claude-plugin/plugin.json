@@ -1,0 +1,1 @@
+{ "name": "looping", "description": "Loop de execução até concluir, com backlog, verificação por evidência e hook de parada.", "version": "0.1.0", "license": "MIT" }
