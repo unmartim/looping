@@ -36,7 +36,7 @@ const block = (reason) => {
   save();
   process.stdout.write(JSON.stringify({
     decision: 'block',
-    reason: `[looping] ${reason} O loop libera sozinho quando terminar de verdade. Estado: ${SCRIPT} status`,
+    reason: `[looping] ${reason} NÃO pergunte nada ao usuário agora e não espere resposta: decida e siga; dúvida que só ele resolve vira item "[pergunta] ..." travado e vai no relatório final. O loop libera sozinho quando terminar de verdade. Estado: ${SCRIPT} status`,
   }));
   process.exit(0);
 };

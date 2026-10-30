@@ -16,6 +16,22 @@ WHILE (itens abertos > 0  OU  a última varredura achou algo novo):
 FIM quando: backlog zerado E uma varredura sem novidades depois da última mudança
 ```
 
+## REGRAS ABSOLUTAS (valem acima de tudo nesta skill)
+
+1. **Não pare para perguntar.** Loop é para ir até acabar. Não encerre a resposta com pergunta, pedido de
+   confirmação ou "quer que eu continue?". Diante de uma dúvida:
+   - se dá para decidir com bom senso, decida, anote a decisão na evidência e siga;
+   - se só o usuário pode decidir (dado que você não tem, credencial, escolha de negócio, ação da seção 5),
+     registre `<s> add "[pergunta] <a dúvida>" --origem agente --tipo tarefa`, marque `fail` 3 vezes com o
+     motivo "precisa do usuário" para ele virar **travado**, e **siga com os outros itens**. Todas as
+     perguntas vão juntas no relatório final.
+2. **Só o usuário encerra o loop.** Você nunca roda `stop` por conta própria; o script recusa sem
+   `--pedido-do-usuario`, e você só passa essa flag quando o usuário mandou parar nesta conversa.
+3. **O cartão do chat é sempre o do `card.mjs`.** Nunca escreva HTML de cartão, nunca resuma o backlog num
+   cartão seu, nunca chame algo de "instantâneo". Um cartão que não sai do `card.mjs` está errado. Se o
+   `card.mjs` falhar, diga o erro em texto, sem cartão substituto.
+4. **Mostre o cartão ao vivo logo depois do `init`,** antes de começar o primeiro item (seção "No OpenBot").
+
 `<s>` = `node <pasta desta skill>/scripts/loop.mjs`. Rode sempre na raiz do projeto: o estado fica em
 `.loop/backlog.json` (adicione `.loop/` ao `.gitignore`).
 
@@ -94,7 +110,7 @@ Itens travados e em conflito não impedem o fim do loop.
 
 ## 7. Encerrar
 
-Quando o hook liberar (ou o usuário mandar parar, com `<s> stop "<motivo>"`), rode `<s> report` e entregue:
+Quando o hook liberar (ou o usuário mandar parar, com `<s> stop "<motivo>" --pedido-do-usuario`), rode `<s> report` e entregue:
 
 - o resultado em 1 linha e o motivo do fim;
 - **feitos**, cada um com a evidência;

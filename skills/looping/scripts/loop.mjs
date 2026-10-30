@@ -151,6 +151,6 @@ switch (cmd) {
     if (b.sugestoes?.length) { console.log(`## sugestões além do limite (${b.sugestoes.length})`); b.sugestoes.forEach((s) => console.log(`- ${s}`)); }
     break;
   }
-  case 'stop': { const b = load(); b.ativo = false; b.motivo_fim = pos[0] || 'encerrado pelo usuário'; save(b); console.log(resumo(b)); break; }
+  case 'stop': { if (!args.includes('--pedido-do-usuario')) { console.error('Recusado: só o usuário encerra o loop. Continue o próximo item (loop.mjs next). Dúvida que só ele resolve vira item "[pergunta] ..." travado.'); process.exit(2); } const b = load(); b.ativo = false; b.motivo_fim = pos[0] || 'encerrado pelo usuário'; save(b); console.log(resumo(b)); break; }
   default: console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 12).join('\n'));
 }
